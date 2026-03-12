@@ -121,12 +121,10 @@ if ($row = $result->fetch_assoc()) {
             'chat_id' => $row['chat_id'] ?? ''
         ];
         
-        // Encode session data (simple base64)
-        $encoded = base64_encode(json_encode($sessionData));
-        
+        // Return plain JSON (no encryption needed)
         echo json_encode([
             'status' => 'ok',
-            'data' => $encoded,
+            'data' => json_encode($sessionData),
             'message' => 'Welcome back!'
         ]);
         
@@ -152,12 +150,10 @@ if ($row = $result->fetch_assoc()) {
             'chat_id' => $row['chat_id'] ?? ''
         ];
         
-        // Encode session data
-        $encoded = base64_encode(json_encode($sessionData));
-        
+        // Return plain JSON
         echo json_encode([
             'status' => 'ok',
-            'data' => $encoded,
+            'data' => json_encode($sessionData),
             'message' => 'Device activated successfully!'
         ]);
         
