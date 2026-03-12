@@ -25,18 +25,51 @@ if ($db->connect_error) {
     ]));
 }
 
+// Auto-create tables if they don't exist
+$db->query("CREATE TABLE IF NOT EXISTS license_keys (
+    id INT AUTO_INCREMENT PRIMARY KEY,
+    key_code VARCHAR(255) UNIQUE NOT NULL,
+    key_type VARCHAR(50) NOT NULL,
+    exp_date DATE NOT NULL,
+    max_devices INT DEFAULT 1,
+    is_active BOOLEAN DEFAULT TRUE,
+    bot_token VARCHAR(255) DEFAULT '',
+    chat_id VARCHAR(255) DEFAULT '',
+    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+)");
+
+$db->query("CREATE TABLE IF NOT EXISTS device_activations (
+    id INT AUTO_INCREMENT PRIMARY KEY,
+    key_code VARCHAR(255) NOT NULL,
+    device_id VARCHAR(255) NOT NULL,
+    device_model VARCHAR(100),
+    device_brand VARCHAR(100),
+    activated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    last_used TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+    UNIQUE KEY unique_device (key_code, device_id)
+)");
+
+// Add sample keys if table is empty
+$result = $db->query("SELECT COUNT(*) as count FROM license_keys");
+if ($result && $result->fetch_assoc()['count'] == 0) {
+    $db->query("INSERT INTO license_keys (key_code, key_type, exp_date, max_devices) VALUES
+    ('PREMIUM-2024-ABC123', 'premium', '2025-12-31', 3),
+    ('LIFETIME-XYZ789', 'lifetime', '2099-12-31', 1),
+    ('TRIAL-30DAYS', 'trial', DATE_ADD(CURDATE(), INTERVAL 30 DAY), 1)");
+}
+
 // Get input data
 $input = json_decode(file_get_contents('php://input'), true);
 $key = $db->real_escape_string($input['key'] ?? '');
-$deviceId = $db->real_escape_string($input['device_id'] ?? '');
-$deviceModel = $db->real_escape_string($input['device_model'] ?? '');
-$deviceBrand = $db->real_escape_string($input['device_brand'] ?? '');
+$deviceId = $db->real_escape_string($input['device_id'] ?? 'unknown-' . uniqid());
+$deviceModel = $db->real_escape_string($input['device_model'] ?? 'Unknown');
+$deviceBrand = $db->real_escape_string($input['device_brand'] ?? 'Unknown');
 
 // Validate input
-if (empty($key) || empty($deviceId)) {
+if (empty($key)) {
     echo json_encode([
         'status' => 'error',
-        'message' => 'Key and device ID are required'
+        'message' => 'License key is required'
     ]);
     exit;
 }
